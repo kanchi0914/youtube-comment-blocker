@@ -8,20 +8,20 @@ import Typography from "@material-ui/core/Typography";
 
 window.addEventListener("load", main, false);
 var isLoaded = false;
-// var commentsField = document.getElementsByTagName('ytd-item-section-renderer').getElementsByTagName();
 
 const e = React.createElement;
+
+var comments = [];
 
 function AAA() {
   return <Button variant="contained">Hello World</Button>;
 }
 
 function MyCard() {
-  // return <h1>これはwwwwだめだぁ…</h1>;
   return (
-      <Card>
+    <Card>
       <CardContent>
-        <Typography variant="h10" component="h3">
+        <Typography variant="subtitle1" component="h3">
           このコメントはブロックされました。理由：ＮＧユーザー
         </Typography>
       </CardContent>
@@ -29,8 +29,26 @@ function MyCard() {
   );
 }
 
+function BanButton(props) {
+  return (
+    <Button
+      id="banButton"
+      label="Sign in"
+      color="primary"
+      variant="contained"
+      className="sample"
+      onClick={(e) => {
+        resisterNGUser(props.comment);
+        //setBannedText(props.comment);
+      }}
+    >
+      このユーザーをブロック
+    </Button>
+  );
+}
+
 function MyProgress() {
-  return <CircularProgress />
+  return <CircularProgress />;
 }
 
 class LikeButton extends React.Component {
@@ -52,123 +70,91 @@ class LikeButton extends React.Component {
   }
 }
 
-console.log("nonedsadasdasdadssanisitat!!!!!");
-
-function banCommentInNeed(comment){
-  return new Promise(resolve => {
-    // try{
-    //   comment.
-    //   resolve();
-    // }catch{
-
-    // }
-    setTimeout(() =>{
-      setBannedText(comment);
-    }, 500)
-  })
-}
-
 function main(e) {
   const jsInitCheckTimer = setInterval(jsLoaded, 1000);
   function jsLoaded() {
-    // if (isLoaded) return;
     isLoaded = true;
 
     const observer = new MutationObserver((render) => {
-      console.log(render);
-//      if (render[0].attributeName != 'can-show-more') return;
-
-
-
-      let target = render[0].target;
-
       const addedNodes = render[0].addedNodes;
+      addedNodes.forEach((commentThread) => {
+        const commentRenderers = commentThread.getElementsByTagName(
+          "ytd-comment-renderer"
+        );
+        const mainCommentRender = commentThread.children[0];
+        const mainComment = mainCommentRender.children[0].children[1];
+        const comment = mainComment.innerText;
 
-      addedNodes.forEach(node => {
-        setBannedText(node)
-      })
+        if (comments.includes(comment)) return;
 
-      // let loadedComments = target.getElementsByTagName('ytd-comment-thread-renderer');
-      // Array.prototype.forEach.call(loadedComments, comment => {
-      //   setBannedText(comment)
-      // })
+        setButton(mainCommentRender);
 
+        blockCommentInNeed(mainCommentRender);
 
-      // let myPromise = new Promise((resolve) => {
-      //   setTimeout(() => {
-      //     let loadedComments = target.getElementsByTagName('ytd-comment-thread-renderer');
-      //     Array.prototype.forEach.call(loadedComments, comment => {
-      //       setBannedText(comment);
-      //     })
-      //     resolve("AA!!")
-      //   }, 500)
-      // })
-
-      // myPromise.then((successMessage) => {
-      //   render[0].target.style.display = "block";
-      //   console.log("Yay! " + successMessage)
-      // });
-
-      // let loadedComments = target.getElementsByTagName('ytd-comment-thread-renderer');
-      // Array.prototype.forEach.call(loadedComments, comment => {
-      //   setBannedText(comment);
-      // })
-      // render[0].target.style.display = "block";
-      
-      //const target2 = target.cloneNode(true);
-       
-      //ReactDOM.render(<CircularProgress />, target);
-
-      //render[0].target.style.display = "block";
-      //ReactDOM.render(target2, target);
-      
-      //この段階でリストを作る
-      console.log(render[0].target);
-      //onCommentsLoad();
+      });
     });
-    var renderer = document.getElementsByTagName(
-      "ytd-item-section-renderer"
-    )[0].children[2];
-    //console.log(renderer);
+    var renderer = document.getElementsByTagName("ytd-item-section-renderer")[0]
+      .children[2];
     observer.observe(renderer, {
-      //attributes: true,
       childList: true,
-      //characterData: true
-      //subtree: true
     });
   }
 }
 
-function onCommentsLoad() {
+function setButton(mainCommentRender) {
+  var button = mainCommentRender.getElementsByTagName("yt-icon-button")[2];
+  button.style.position = "relative";
+  button.style.marginLeft = "auto";
 
-  var comments = document.getElementsByTagName("ytd-comment-renderer");
-  var buttons = document.getElementsByClassName(
-    "dropdown-trigger style-scope ytd-menu-renderer"
-  );
+  var menu = mainCommentRender.children[0].children[2];
+  menu.style.position = "relative";
 
-  Array.prototype.forEach.call(comments, comment => {
-    var button = comment.getElementsByTagName("yt-icon-button")[2];
-    // var banButton = document.createElement("button");
-    // banButton.innerText = "このユーザーをブロック";
-    // banButton.className = "sample btn btn-primary";
-    //if (button != null) button.appendChild(banButton);
+  var div = document.createElement("div");
+  if (menu != null) menu.appendChild(div);
+  ReactDOM.render(<BanButton comment={mainCommentRender}></BanButton>, div);
 
-    // var div = document.createElement("div");
-    // div.innerHTML = "OOOOOO!!!!!";
-    // div.className = "card";
-    // console.log(div.textContent);
+  div.style.display = "none";
 
-    var aaa = React.createElement("span", null, "hello world!");
+  menu.onmouseover = () => {
+    div.style.display = "block";
+  };
+  menu.onmouseout = () => {
+    div.style.display = "none";
+  };
+  menu.style.align = "right";
+  button.style.align = "right";
+}
 
-    ReactDOM.render(<MyCard />, comment);
-
-    // comment.innerHTML =
-    //   '<Button color="primary">Hello World</Button>';
+function resisterNGUser(commentRenderer) {
+  const userName = getUserName(commentRenderer);
+  chrome.storage.sync.get(["NGUserNames"], (items) => {
+    var NGUserNames = items.NGUserNames;
+    if (!NGUserNames) NGUserNames = [];
+    console.log(NGUserNames);
+    NGUserNames.push(userName);
+    chrome.storage.sync.set({
+      NGUserNames: NGUserNames,
+    });
   });
 }
 
-function setBannedText(comment){
-  ReactDOM.render(<MyCard />, comment);
+function blockCommentInNeed(commentRenderer) {
+  const userName = getUserName(commentRenderer);
+  chrome.storage.sync.get(["NGUserNames"], (items) => {
+    const NGUserNames = items.NGUserNames;
+    console.log(userName);
+    if (NGUserNames.includes(userName)) {
+      blockComment(commentRenderer);
+    }
+  });
+}
+
+function getUserName(commentRenderer) {
+  return commentRenderer.querySelector("#author-text").innerText;
+}
+
+function blockComment(commentRenderer) {
+  ReactDOM.render(<MyCard />, commentRenderer);
 }
 
 function onClick() {

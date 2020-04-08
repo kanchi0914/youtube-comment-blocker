@@ -34,5 +34,8 @@
       "run_at": "document_end",
       "all_frames": true
     }
+  ],
+  "permissions": [
+    "storage"
   ]
 }
